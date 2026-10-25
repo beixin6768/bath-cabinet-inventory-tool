@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浴櫃庫存小工具</title>
+<style>
+  :root{
+    --ink:#0f172a; --body:#475569; --accent:#ea580c; --surface:#fff;
+    --line:#e2e8f0; --soft:#ffedd5; --bg:#f1f5f9;
+    --good:#0f766e; --alert:#be123c; --mute:#94a3b8; --line2:#cbd5e1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;
+       color:var(--ink);background:var(--bg);line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:16px}
+  header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 20px}
+  h1{font-size:1.3rem;margin:0;letter-spacing:-.02em}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--body);font-size:.88rem;margin-top:2px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+        padding:18px;margin-bottom:16px;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+  .card h2{font-size:1.05rem;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .card h2::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  label{display:block;font-size:.82rem;font-weight:700;color:var(--body);margin:0 0 4px}
+  input,select,textarea{
+    font-family:inherit;font-size:.9rem;padding:9px 12px;border:1px solid var(--line2);
+    border-radius:8px;background:var(--surface);color:var(--ink);width:100%}
+  input:focus,select:focus{border-color:var(--accent)}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+  .btn{cursor:pointer;font-family:inherit;font-size:.88rem;font-weight:700;
+       border:1px solid var(--line2);background:var(--surface);color:var(--body);
+       border-radius:999px;padding:10px 20px;transition:all .15s}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.primary:hover{filter:brightness(.94);color:#fff}
+  .btn.block{display:block;width:100%}
+  .log{max-height:340px;overflow-y:auto;font-family:ui-monospace,monospace;font-size:.84rem}
+  .log table{width:100%;border-collapse:collapse}
+  .log th,.log td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .log th{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+  .log td:last-child{text-align:right}
+  .del{cursor:pointer;color:var(--alert);font-weight:700;background:none;border:none;font-size:.8rem}
+  .stock table{width:100%;border-collapse:collapse}
+  .stock th,.stock td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:.9rem}
+  .stock th{font-size:.74rem;color:var(--mute);letter-spacing:.03em}
+  .stock td.num,.stock th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .low{color:var(--alert);font-weight:800}
+  .ok{color:var(--good);font-weight:700}
+  .badge{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px}
+  .badge.m{background:#eef4ff;color:#1d4ed8}
+  .badge.j{background:#fdf1f2;color:#a3202b}
+  .badge.mx{background:#f1f5f9;color:#475569}
+  .hint{font-size:.78rem;color:var(--mute);margin-top:4px}
+  .q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+  .q h3{font-size:.95rem;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .q .col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end}
+  @media(max-width:640px){.q .col{grid-template-columns:1fr}}
+  .totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+  .stat .n{font-size:1.5rem;font-weight:800;color:var(--accent)}
+  .stat .l{font-size:.76rem;color:var(--body)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛁 浴櫃庫存<span>小工具</span></h1>
+  <div class="sub">輸入「出貨幾組」，自動扣掉對應的主櫃與鏡櫃；單買也能算。資料會自動存在此瀏覽器。</div>
+</header>
+
+<div class="wrap">
+
+  <!-- 快速統計 -->
+  <div class="totals">
+    <div class="stat"><div class="n" id="tSets">0</div><div class="l">今日出貨（組）</div></div>
+    <div class="stat"><div class="n" id="tMain">0</div><div class="l">今日扣主櫃</div></div>
+    <div class="stat"><div class="n" id="tMirror">0</div><div class="l">今日扣鏡櫃/鏡子</div></div>
+    <div class="stat"><div class="n" id="tWarn" style="color:var(--alert)">0</div><div class="l">庫存不足警示</div></div>
+  </div>
+
+  <!-- STEP 1 選產品 -->
+  <div class="card">
+    <h2>1. 選產品與出貨 / 進貨</h2>
+    <div class="q">
+      <h3>選擇型號</h3>
+      <div class="col">
+        <div><label>系列</label><select id="selSeries"></select></div>
+        <div><label>尺寸</label><select id="selSize"></select></div>
+        <div><label>類型</label>
+          <select id="selType">
+            <option value="set">浴櫃（主櫃+鏡櫃）組</option>
+            <option value="main">單買 主櫃</option>
+            <option value="mirror">單買 鏡櫃/鏡子</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint" id="recipeHint"></div>
+    </div>
+    <div class="q">
+      <h3>輸入數量</h3>
+      <div class="col">
+        <div><label>動作</label>
+          <select id="selAction">
+            <option value="ship">出貨（扣庫存）</option>
+            <option value="receive">進貨（加庫存）</option>
+          </select>
+        </div>
+        <div><label>日期</label><input type="date" id="inpDate"></div>
+        <div><label>數量</label><input type="number" id="inpQty" value="1" min="1"><div>
+      </div>
+      <div style="margin-top:12px"><button class="btn primary block" id="btnAdd">＋ 記錄這筆</button></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 今日異動 -->
+  <div class="card">
+    <h2>2. 今日異動明細</h2>
+    <div class="log"><table id="logTable"><thead>
+      <tr><th>日期</th><th>型號</th><th>類型</th><th>動作</th><th>主櫃</th><th>鏡櫃</th><th></th></tr>
+    </thead><tbody id="logBody"></tbody></table></div>
+  </div>
+
+  <!-- STEP 3 即時庫存 -->
+  <div class="card stock">
+    <h2>3. 即時庫存（已自動扣除）</h2>
+    <table id="stockTable"><thead>
+      <tr><th>型號</th><th>主櫃庫存</th><th>鏡櫃/鏡子庫存</th><th>可出貨組數</th><th>狀態</th></tr>
+    </thead><tbody id="stockBody"></tbody></table>
+    <div class="hint">「可出貨組數」= min(主櫃, 鏡櫃)，代表還能出幾整組。</div>
+    <div style="margin-top:10px">
+      <button class="btn" id="btnReset">↺ 重設所有庫存與紀錄</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 批次輸入真實庫存 -->
+  <div class="card">
+    <h2>4. 批次輸入真實庫存（一鍵套用）</h2>
+    <p style="color:var(--body);font-size:.9rem;margin:0 0 10px">
+      一次把「真實庫存量」貼進來，直接取代整天設定值。
+      每一行一個型號，格式：<b>系列 尺寸 主櫃數 鏡櫃數</b>（空白或逗號隔開）。
+    </p>
+    <div class="grid">
+      <label>貼上你的庫存清單</label>
+      <textarea id="batchText" rows="10" placeholder="例如：&#10;初綻 60 8 6&#10;初綻 80 3 5&#10;盛放 100 10 4&#10;雅境 60 6 6"></textarea>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn primary" id="btnBatchApply">✔ 一鍵套用真實庫存</button>
+      <button class="btn" id="btnBatchClear" style="margin-left:8px">清空</button>
+    </div>
+    <div id="batchResult" class="hint" style="margin-top:10px"></div>
+  </div>
+
+</div>
+
+<script>
+// ── 產品資料（取自你的 A浴櫃價格.xlsx）─────
+// 每個系列×尺寸 = 一種浴櫃，由「主櫃 + 鏡櫃」組成。
+// 初始庫存先放預設值，你可用「進貨」改成真實數字。
+// 新增系列：在下方加一行即可，例如 "新系列": {sizes:["60","80"], main:5, mirror:5}
+const DEFAULT_STOCK = 5;
+const SERIES = {
+  "初綻":   { sizes:["60","80"] },
+  "盛放":   { sizes:["80","100"] },
+  "雅境":   { sizes:["60"] },
+  "和悅":   { sizes:["60"] },
+  "柔光":   { sizes:["60"] },
+  "澄心":   { sizes:["60"] },
+  "晴意":   { sizes:["60","80"] },
+  "純淨":   { sizes:["50"] },
+  "永恆":   { sizes:["60","80"] },
+  "貝爾":   { sizes:["40"] },
+  "雅典娜": { sizes:["40"] },
+  "賽亞":   { sizes:["60"] },
+  "所羅門": { sizes:["60"] },
+  "阿波羅": { sizes:["60","80","100"] },
+  "柔和":   { sizes:["60","80"] },
+  "星空":   { sizes:["60","80"] },
+  "晨曦":   { sizes:["80"] },
+  "浪花":   { sizes:["60","80"] },
+  "豐收":   { sizes:["80"] },
+  "春風":   { sizes:["60","80"] },
+  "耀眼":   { sizes:["80","100"] },
+  "晚霞":   { sizes:["80","100"] },
+  "微風":   { sizes:["80","100"] },
+  "恬靜":   { sizes:["60","80"] },
+  "繽紛":   { sizes:["60","80"] },
+  "閃耀":   { sizes:["80"] },
+  "鄉韻":   { sizes:["60","80"] },
+  "波爾多": { sizes:["B60","B80"] },
+  "鬱金香": { sizes:["60"] },
+  "滿天星": { sizes:["40"] },
+  "風信子": { sizes:["60"] },
+  "紫羅蘭": { sizes:["40"] },
+  "山茶花": { sizes:["40"] },
+  "向日葵":   { sizes:["60","80"] },
+  "康乃馨":   { sizes:["60"] },
+  "櫻之晨":   { sizes:["40"] },
+  "映日紅":   { sizes:["60"] },
+  "紫丁香":   { sizes:["60"] },
+  "森活":   { sizes:["50A","50B","70A","70B"] },
+  "青森":   { sizes:["60","80"] },
+  "奈吉":   { sizes:["80"] },
+  "美凌":   { sizes:["60","80"] },
+  "航母系列": { sizes:["80","100"] },
+  "梵花系列": { sizes:["80","100"] },
+  "奈斯系列": { sizes:["80","100"] },
+  "百川系列": { sizes:["60","80"] },
+  "木光系列": { sizes:["60","80"] },
+  "天空之城": { sizes:["80"] },
+  "天使":   { sizes:["60","80"] },
+};
+
+// ── 狀態 ─────────────────────────────────
+// stock = { "系列|尺寸": { main: 數量, mirror: 數量, mainName, mirrorName } }
+let stock = {};
+// log = [ {date, series, size, type, action, qty, mainDelta, mirrorDelta} ]
+let log = [];
+
+// ── 儲存 / 載入 ─────────────────────────
+const SAVE_KEY = "bath_cabinet_stock_v1";
+
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify({ stock, log })); }catch(e){}
+}
+
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(data.stock) stock = data.stock;
+    if(Array.isArray(data.log)) log = data.log;
+    return true;
+  }catch(e){ return false; }
+}
+
+// ── 初始化 ───────────────────────────────
+function key(s, sz){ return s + "|" + sz; }
+
+function initStock(){
+  const loaded = load();
+  for(const s in SERIES){
+    for(const sz of SERIES[s].sizes){
+      const k = key(s, sz);
+      if(!stock[k]){
+        stock[k] = {
+          main: DEFAULT_STOCK,
+          mirror: DEFAULT_STOCK,
+          mainName: s + "主櫃" + sz,
+          mirrorName: s + "鏡櫃" + sz,
+        };
+      }
+    }
+  }
+  return loaded;
+}
+
+// ── 清單輸出 ─────────────────────────────
+function fillSeries(){
+  const sel = document.getElementById("selSeries");
+  sel.innerHTML = "";
+  for(const s of Object.keys(SERIES).sort()){
+    const o = document.createElement("option");
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  }
+  fillSize();
+}
+
+function fillSize(){
+  const s = document.getElementById("selSeries").value;
+  const sel = document.getElementById("selSize");
+  sel.innerHTML = "";
+  (SERIES[s]?.sizes || []).forEach(sz=>{
+    const o = document.createElement("option");
+    o.value = sz; o.textContent = sz;
+    sel.appendChild(o);
+  });
+  updateRecipe();
+}
+
+function updateRecipe(){
+  const s = document.getElementById("selSeries").value;
+  const sz = document.getElementById("selSize").value;
+  const type = document.getElementById("selType").value;
+  const hint = document.getElementById("recipeHint");
+  if(type === "set"){
+    hint.textContent = `　組 = ${s}主櫃${sz} × 1 ＋ ${s}鏡櫃${sz} × 1`;
+  } else if(type === "main"){
+    hint.textContent = `單買：${s}主櫃${sz} × 1`;
+  } else {
+    hint.textContent = `單買：${s}鏡櫃${sz} × 1`;
+  }
+}
+
+// ── 記錄一筆 ─────────────────────────────
+document.getElementById("btnAdd").addEventListener("click", ()=>{
+  const s   = document.getElementById("selSeries").value;
+  const sz  = document.getElementById("selSize").value;
+  const type= document.getElementById("selType").value;
+  const act = document.getElementById("selAction").value;
+  const date= document.getElementById("inpDate").value || new Date().toISOString().slice(0,10);
+  const qty = parseInt(document.getElementById("inpQty").value, 10);
+  if(!qty || qty < 1){ alert("請輸入正確數量"); return; }
+
+  const k = key(s, sz);
+  const rec = { date, series:s, size:sz, type, action:act, qty };
+  const dir = act === "ship" ? -1 : 1;
+
+  if(type === "set"){
+    rec.mainDelta = dir * qty;
+    rec.mirrorDelta = dir * qty;
+  } else if(type === "main"){
+    rec.mainDelta = dir * qty;
+    rec.mirrorDelta = 0;
+  } else {
+    rec.mainDelta = 0;
+    rec.mirrorDelta = dir * qty;
+  }
+
+  // 出貨檢查庫存是否足夠
+  if(act === "ship"){
+    const cur = stock[k];
+    if(cur.main + rec.mainDelta < 0 || cur.mirror + rec.mirrorDelta < 0){
+      alert("出貨失敗：庫存不足！\n目前「" + s + sz + "」主櫃 " + cur.main + "、鏡櫃 " + cur.mirror + "。");
+      return;
+    }
+  }
+
+  stock[k].main += rec.mainDelta;
+  stock[k].mirror += rec.mirrorDelta;
+  log.push(rec);
+  save();
+  renderLog(); renderStock(); renderTotals();
+});
+
+// ── 渲染 ─────────────────────────────────
+function typeLabel(t){
+  return t === "set" ? '<span class="badge m">浴櫃組</span>'
+       : t === "main" ? '<span class="badge j">主櫃</span>'
+       : '<span class="badge mx">鏡櫃</span>';
+}
+
+function renderLog(){
+  const tb = document.getElementById("logBody");
+  tb.innerHTML = "";
+  [...log].reverse().forEach((r, i)=>{
+    const idx = log.length - 1 - i;
+    const tr = document.createElement("tr");
+    const dir = r.action === "ship" ? "出貨" : "進貨";
+    const d = r.action === "ship" ? "-" : "+";
+    tr.innerHTML = `
+      <td>${r.date}</td>
+      <td>${r.series} ${r.size}</td>
+      <td>${typeLabel(r.type)}</td>
+      <td>${dir} × ${r.qty}</td>
+      <td class="num">${r.mainDelta ? d + Math.abs(r.mainDelta) : "—"}</td>
+      <td class="num">${r.mirrorDelta ? d + Math.abs(r.mirrorDelta) : "—"}</td>
+      <td><button class="del" data-idx="${idx}">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+
+  // 刪除功能
+  tb.querySelectorAll(".del").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const idx = parseInt(btn.dataset.idx, 10);
+      const r = log[idx];
+      // 還原庫存
+      stock[key(r.series, r.size)].main -= r.mainDelta;
+      stock[key(r.series, r.size)].mirror -= r.mirrorDelta;
+      log.splice(idx, 1);
+      save();
+      renderLog(); renderStock(); renderTotals();
+    });
+  });
+}
+
+function renderStock(){
+  const tb = document.getElementById("stockBody");
+  tb.innerHTML = "";
+  let warnCount = 0;
+  for(const k in stock){
+    const s = stock[k];
+    const [series, sz] = k.split("|");
+    const canShip = Math.min(s.main, s.mirror);
+    const low = s.main <= 2 || s.mirror <= 2;
+    if(low) warnCount++;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><b>${series} ${sz}</b></td>
+      <td class="num ${s.main <= 2 ? 'low' : 'ok'}">${s.main}</td>
+      <td class="num ${s.mirror <= 2 ? 'low' : 'ok'}">${s.mirror}</td>
+      <td class="num ${canShip <= 0 ? 'low' : ''}">${canShip}</td>
+      <td>${canShip <= 0 ? '<span class="badge" style="background:#ffe4e6;color:#9f1239">缺貨</span>'
+          : low ? '<span class="badge" style="background:#fef3c7;color:#92400e">偏低</span>'
+          : '<span class="badge" style="background:#d1fae5;color:#065f46">庫存</span>'}
+      </td>`;
+    tb.appendChild(tr);
+  }
+  document.getElementById("tWarn").textContent = warnCount;
+}
+
+function renderTotals(){
+  let sets = 0, m = 0, mi = 0;
+  log.forEach(r=>{
+    if(r.action === "ship"){
+      if(r.type === "set") sets += r.qty;
+      m += -r.mainDelta;
+      mi += -r.mirrorDelta;
+    }
+  });
+  document.getElementById("tSets").textContent = sets;
+  document.getElementById("tMain").textContent = m;
+  document.getElementById("tMirror").textContent = mi;
+}
+
+// ── 事件 ─────────────────────────────────
+document.getElementById("selSeries").addEventListener("change", fillSize);
+document.getElementById("selSize").addEventListener("change", updateRecipe);
+document.getElementById("selType").addEventListener("change", updateRecipe);
+
+document.getElementById("btnReset").addEventListener("click", ()=>{
+  if(!confirm("確定要重設所有庫存與紀錄嗎？此動作無法復原。")) return;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  stock = {}; log = [];
+  initStock();
+  fillSeries();
+  renderLog(); renderStock(); renderTotals();
+});
+
+// ── 批次輸入真實庫存 ─────────────────────
+document.getElementById("btnBatchClear").addEventListener("click", ()=>{
+  document.getElementById("batchText").value = "";
+  document.getElementById("batchResult").textContent = "";
+});
+
+document.getElementById("btnBatchApply").addEventListener("click", ()=>{
+  const raw = document.getElementById("batchText").value.trim();
+  const out = document.getElementById("batchResult");
+  if(!raw){ out.textContent = "請先貼上庫存清單。"; out.style.color = "var(--alert)"; return; }
+
+  const lines = raw.split(/\r?\n/);
+  let ok = 0, fail = 0;
+  const errors = [];
+
+  lines.forEach((line, i)=>{
+    const t = line.trim();
+    if(!t) return;
+    // 支援空白、逗號、Tab 分隔
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    if(parts.length < 4){
+      fail++; errors.push(`第 ${i+1} 行欄位不足：${t}`); return;
+    }
+    const series = parts[0];
+    const size = parts[1];
+    const main = parseInt(parts[2], 10);
+    const mirror = parseInt(parts[3], 10);
+    if(isNaN(main) || isNaN(mirror) || main < 0 || mirror < 0){
+      fail++; errors.push(`第 ${i+1} 行數字不對：${t}`); return;
+    }
+    const k = key(series, size);
+    if(!stock[k]){
+      // 不在清單的型號，仍允許建立
+      stock[k] = { main:0, mirror:0, mainName: series+"主櫃"+size, mirrorName: series+"鏡櫃"+size };
+    }
+    stock[k].main = main;
+    stock[k].mirror = mirror;
+    ok++;
+  });
+
+  save();
+  renderLog(); renderStock(); renderTotals();
+
+  if(errors.length){
+    out.innerHTML = `✅ 成功套用 <b>${ok}</b> 個型號。<br>❌ 有 <b>${fail}</b> 行有問題：<br>` + errors.slice(0,5).join("<br>");
+    out.style.color = "var(--alert)";
+  } else {
+    out.textContent = `✅ 成功套用 ${ok} 個型號的真實庫存！`;
+    out.style.color = "var(--good)";
+  }
+});
+
+// ── 啟動 ─────────────────────────────────
+const hasSaved = initStock();
+fillSeries();
+renderLog();
+renderStock();
+renderTotals();
+document.getElementById("inpDate").value = new Date().toISOString().slice(0,10);
+if(hasSaved) console.log("已載入先前儲存的庫存紀錄");
+</script>
+</body>
+</html>
