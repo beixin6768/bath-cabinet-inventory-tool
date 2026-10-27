@@ -74,6 +74,8 @@
 
 <div class="wrap">
 
+  <div id="loadNote" class="hint" style="margin-bottom:10px"></div>
+
   <!-- 快速統計 -->
   <div class="totals">
     <div class="stat"><div class="n" id="tSets">0</div><div class="l">今日出貨（組）</div></div>
@@ -132,7 +134,10 @@
     </thead><tbody id="stockBody"></tbody></table>
     <div class="hint">「可出貨組數」= min(主櫃, 鏡櫃)，代表還能出幾整組。</div>
     <div style="margin-top:10px">
-      <button class="btn" id="btnReset">↺ 重設所有庫存與紀錄</button>
+      <button class="btn" id="btnExport">⬇ 匯出備份</button>
+      <button class="btn" id="btnImport" style="margin-left:8px">⬆ 匯入備份</button>
+      <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+      <button class="btn" id="btnReset" style="margin-left:8px">↺ 重設所有庫存與紀錄</button>
     </div>
   </div>
 
@@ -484,6 +489,50 @@ document.getElementById("btnBatchApply").addEventListener("click", ()=>{
   }
 });
 
+// ── 匯出／匯入備份 ───────────────────────
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify({ stock, log }, null, 2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "浴櫃庫存備份_" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+const fileImport = document.getElementById("fileImport");
+document.getElementById("btnImport").addEventListener("click", ()=> fileImport.click());
+fileImport.addEventListener("change", ()=>{
+  const f = fileImport.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(data.stock) stock = data.stock;
+      if(Array.isArray(data.log)) log = data.log;
+      // 補齊清單裡有、備份裡沒有的型號（給預設值）
+      for(const s in SERIES){
+        for(const sz of SERIES[s].sizes){
+          const k = key(s, sz);
+          if(!stock[k]){
+            stock[k] = {
+              main: DEFAULT_STOCK, mirror: DEFAULT_STOCK,
+              mainName: s + "主櫃" + sz, mirrorName: s + "鏡櫃" + sz,
+            };
+          }
+        }
+      }
+      save();
+      renderLog(); renderStock(); renderTotals();
+      alert("✅ 匯入成功！庫存與紀錄已還原。");
+    }catch(e){
+      alert("❌ 匯入失敗：這不是本工具匯出的備份檔。");
+    }
+  };
+  reader.readAsText(f);
+  fileImport.value = "";
+});
+
 // ── 啟動 ─────────────────────────────────
 const hasSaved = initStock();
 fillSeries();
@@ -491,7 +540,15 @@ renderLog();
 renderStock();
 renderTotals();
 document.getElementById("inpDate").value = new Date().toISOString().slice(0,10);
-if(hasSaved) console.log("已載入先前儲存的庫存紀錄");
+
+const loadNote = document.getElementById("loadNote");
+if(hasSaved){
+  loadNote.textContent = "✔ 已載入上次保存的庫存資料";
+  loadNote.style.color = "var(--good)";
+}else{
+  loadNote.textContent = "⚠ 沒有找到保存的資料，目前顯示預設庫存（每型號 5）。如果你之前輸入過，可能是用不同的瀏覽器或方式開啟這個檔案。";
+  loadNote.style.color = "var(--alert)";
+}
 </script>
 </body>
 </html>
