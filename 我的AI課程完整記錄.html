@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的 AI 課程完整記錄（2026/10/22-23）</title>
+<style>
+  body{font-family:"Microsoft JhengHei","PingFang TC",sans-serif;max-width:860px;margin:0 auto;padding:20px;line-height:1.7;color:#1e293b;background:#f8fafc}
+  h1{color:#0f766e;border-bottom:3px solid #0f766e;padding-bottom:8px}
+  h2{color:#0f766e;margin-top:32px;border-left:6px solid #0f766e;padding-left:10px}
+  .card{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:16px 20px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  code,pre{font-family:Consolas,monospace;background:#f1f5f9;border-radius:6px}
+  pre{padding:12px;overflow-x:auto;border:1px solid #e2e8f0}
+  code{padding:1px 6px}
+  table{border-collapse:collapse;width:100%;margin:10px 0;background:#fff}
+  th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left}
+  th{background:#0f766e;color:#fff}
+  .warn{background:#fef2f2;border-left:5px solid #be123c;padding:10px 14px;border-radius:6px;margin:10px 0}
+  .good{background:#f0fdf4;border-left:5px solid #16a34a;padding:10px 14px;border-radius:6px;margin:10px 0}
+  .tip{background:#eff6ff;border-left:5px solid #2563eb;padding:10px 14px;border-radius:6px;margin:10px 0}
+  .small{font-size:.85rem;color:#64748b}
+</style>
+</head>
+<body>
+
+<h1>🛁 我的 AI 課程完整記錄</h1>
+<p class="small">金屬中心（MIRDC）AI 課程第二梯 · 2026/10/22-23 · 帶得走的精華筆記</p>
+
+<!-- ══════ 1. 小工具 ══════ -->
+<h2>1️⃣ 我做出的小工具：浴櫃庫存管理</h2>
+<div class="card">
+  <b>當初的痛點：</b>一組浴櫃 ＝ 一個<b>主櫃</b> ＋ 一個<b>鏡櫃/鏡子</b>。出貨時要分別扣兩種庫存，常常無法馬上知道正確庫存量、還能出幾整組。
+  <br><b>解法：</b>一頁 HTML（<code>浴櫃庫存小工具.html</code>），<b>點兩下就能用</b>，不用安裝任何東西。
+</div>
+<div class="card">
+  <b>功能總覽：</b>
+  <ul>
+    <li>出貨「浴櫃組」→ 自動同時扣 主櫃 + 鏡櫃</li>
+    <li>單買主櫃、單買鏡櫃也能記</li>
+    <li>即時庫存表：可出貨組數 = min(主櫃, 鏡櫃)</li>
+    <li>庫存不足自動警告擋下</li>
+    <li>出貨/進貨歷程，可單筆刪除復原</li>
+    <li>資料自動保存在瀏覽器（localStorage）</li>
+    <li>「4. 批次輸入」從 Excel 貼上一鍵套用真實庫存</li>
+    <li>⬇ 匯出備份 / ⬆ 匯入備份（換電腦用）</li>
+    <li>產品清單＝公司真實 49 個系列×尺寸</li>
+  </ul>
+</div>
+
+<!-- ══════ 2. 每天怎麼用 ══════ -->
+<h2>2️⃣ 每天怎麼用（3 步）</h2>
+<div class="card">
+  <ol>
+    <li><b>雙擊</b>桌面的 <code>浴櫃庫存小工具.html</code>（用自己電腦的瀏覽器開，Edge 或 Chrome 都可以）</li>
+    <li>看最上面的狀態字：
+      <br>🟢「✔ 已載入上次保存的庫存資料」＝數字都在，開始用
+      <br>🔴「⚠ 沒有找到保存的資料」＝這次開的方式讀不到（見第 4 節解法）</li>
+    <li>記錄出貨：選系列 → 尺寸 → 類型 → 數量 → 「＋ 記錄這筆」。庫存表會自動扣！</li>
+  </ol>
+</div>
+
+<!-- ══════ 3. 批次輸入 ══════ -->
+<h2>3️⃣ 批次輸入真實庫存（從 Excel）</h2>
+<div class="card">
+  <p>格式：每一行 <code>系列 尺寸 主櫃數 鏡櫃數</code>（空白、逗號、Tab 都可以隔開）</p>
+  <pre>初綻 60 8 6
+初綻 80 3 5
+盛放 100 10 4</pre>
+  <p><b>從 Excel 複製的訣竅：</b>只框「資料列」、<b>不要選標題列</b>（系列/尺寸/主櫃/鏡櫃那行文字），貼進「4. 批次輸入」按「✔ 一鍵套用」。</p>
+  <p class="small">※ 批次輸入是「直接設定庫存」，不會留進貨紀錄。想留紀錄就用上面的「進貨」。</p>
+</div>
+
+<!-- ══════ 4. 資料保存與搬家（最重要） ══════ -->
+<h2>4️⃣ 資料保存與搬家（最重要的一節）</h2>
+<div class="warn">
+  <b>核心觀念：</b>庫存數字存在「<b>瀏覽器</b>」裡，<b>不會跟著 HTML 檔案走</b>。
+  換瀏覽器（Edge↔Chrome）、換電腦、用別的方式開（例如 AI 助手的預覽視窗）→ 都會讀不到，顯示預設值 5。
+</div>
+<div class="good">
+  <b>解法＝備份檔：</b>按「<b>⬇ 匯出備份</b>」→ 存下 <code>浴櫃庫存備份_日期.json</code>。<br>
+  新電腦：雙擊開 HTML → 按「<b>⬆ 匯入備份</b>」→ 選 json 檔 → 數字全部回來。
+</div>
+<div class="card">
+  <b>換電腦標準流程：</b>
+  <ol>
+    <li>舊電腦：匯出備份（json）</li>
+    <li>帶 <b>2 個檔案</b>：HTML（工具本體）＋ json（備份）。隨身碟 / LINE 傳自己 / Email 都行</li>
+    <li>新電腦：開 HTML → 匯入 json → 完成</li>
+  </ol>
+  <b>習慣建議：</b>每週（或每次大改庫存後）匯出一次備份，檔案越新越保險。
+</div>
+
+<!-- ══════ 5. GitHub ══════ -->
+<h2>5️⃣ GitHub 雲端（作業已完成）</h2>
+<div class="card">
+  <table>
+    <tr><th>項目</th><th>內容</th></tr>
+    <tr><td>帳號</td><td><b>beixin6768</b></td></tr>
+    <tr><td>倉庫</td><td>bath-cabinet-inventory-tool</td></tr>
+    <tr><td>已上傳</td><td>浴櫃庫存小工具.html ＋ README.md</td></tr>
+    <tr><td>待辦（上課時）</td><td>邀請老師：倉庫 → <b>Settings → Collaborators → Add people</b> → 輸入老師帳號</td></tr>
+  </table>
+  <div class="tip"><b>任何電腦都能取得工具：</b>開 <code>github.com/beixin6768/bath-cabinet-inventory-tool</code> → 點 HTML 檔 → Download。這就是「資料放雲端、帶著走」。</div>
+  <div class="warn"><b>小提醒：</b>這個倉庫目前是「公開」的，內容有公司產品名稱。如果不想公開，可以改成私有：Settings → General → 最下面 Danger Zone → Change visibility。（改私有後要邀請老師當 Collaborator 才看得到）</div>
+</div>
+
+<!-- ══════ 6. Mermaid ══════ -->
+<h2>6️⃣ Mermaid 流程圖（第⑥關必備）</h2>
+<div class="card">
+  <b>一句話：</b>用打字的方式畫流程圖——改圖＝改文字，存得下來、交接得出去。
+</div>
+<div class="card">
+  <b>語法速查表：</b>
+  <table>
+    <tr><th>寫法</th><th>意思</th><th>畫出來</th></tr>
+    <tr><td><code>flowchart TD</code></td><td>流程圖，上到下（LR＝左到右）</td><td>整張圖方向</td></tr>
+    <tr><td><code>A[做事]</code></td><td>A 點，名叫「做事」</td><td>方框</td></tr>
+    <tr><td><code>C{要判斷?}</code></td><td>有問題要判斷</td><td>菱形</td></tr>
+    <tr><td><code>--&gt;</code></td><td>箭頭</td><td>→</td></tr>
+    <tr><td><code>--&gt;|有|</code></td><td>箭頭上寫字（次數/時間/條件）</td><td>→有→</td></tr>
+    <tr><td><code>[[人確認]]</code></td><td>必須由人把關的一步</td><td>雙線框</td></tr>
+    <tr><td><code>subgraph 人做 ... end</code></td><td>把一組框在一起</td><td>分區塊</td></tr>
+  </table>
+</div>
+<div class="card">
+  <b>老師第⑥關的 5 條規則：</b>
+  <ol>
+    <li>用 <code>flowchart TD</code>，由上到下</li>
+    <li>一個方框只寫一件事，八個字以內</li>
+    <li>用 subgraph 分開「人做」跟「AI 做」</li>
+    <li>次數、時間寫在線上，例如 <code>A --&gt;|每週三次| B</code></li>
+    <li>人要確認的那一步，用雙框 <code>[[人確認]]</code></li>
+  </ol>
+  <b>檢查重點：</b>對外承諾那一步，有雙框嗎？沒有就叫 AI 改。
+</div>
+<div class="card">
+  <b>練習範例（我的浴櫃出貨「現況」）：</b>
+<pre>flowchart TD
+  A[客戶訂浴櫃] --&gt; B[打開Excel庫存表]
+  B --&gt; C[查主櫃庫存]
+  C --&gt; D[查鏡櫃庫存]
+  D --&gt; E[心算扣庫存]
+  E --&gt; F{庫存夠嗎?}
+  F --&gt;|夠| G[出貨改Excel]
+  F --&gt;|不夠| H[回覆客戶等貨]
+  G --&gt; I[[老闆確認數量]]</pre>
+  <p><b>在哪裡畫：</b>① <a href="https://mermaid.live">mermaid.live</a>（貼上就出圖，可下載 PNG）② Notion 打 <code>/code</code> → 語言選 Mermaid</p>
+  <p class="small">※ 還差一張「導入後」：用 subgraph 分「人做 / AI 做」，跟「現況」湊成對照組。</p>
+</div>
+
+<!-- ══════ 7. 疑難雜症 ══════ -->
+<h2>7️⃣ 疑難雜症記錄（遇到就知道怎麼辦）</h2>
+<div class="card">
+  <b>❓ 庫存數字突然回到預設值 5</b>
+  <br>原因：用了不同的「開啟方式」（預覽視窗、換瀏覽器、不同電腦），瀏覽器讀不到原本的資料。
+  <br>解法：用平常的方式重開一次；或按「⬆ 匯入備份」把 json 救回來。
+</div>
+<div class="card">
+  <b>❓ Incorrect API key provided（金鑰錯誤）</b>
+  <br>API key 像一把鑰匙，這訊息＝鑰匙被擋下。常見原因：
+  <ol>
+    <li>複製時多空格或少字元（最常見）</li>
+    <li>舊金鑰已被刪除或重新產生</li>
+    <li>拿 A 服務的金鑰去用 B 服務</li>
+    <li>拿「網頁登入 token」當 API key 用</li>
+    <li>設定沒生效（貼錯欄位/沒存）</li>
+    <li>帳號沒開通或沒綁付款</li>
+  </ol>
+  解法 3 步：重新產生新 key → 完整複製（注意開頭結尾沒空格）→ 確認服務選對。
+  <br><span class="small">※「Free usage limit reached」＝免費額度用完，不是金鑰錯誤，等額度恢復或升級方案。</span>
+</div>
+
+<!-- ══════ 8. 未來點子 ══════ -->
+<h2>8️⃣ 以後想加的功能（點子庫）</h2>
+<div class="card">
+  <ul>
+    <li>每天/每週庫存報表</li>
+    <li>出貨歷史匯出成 CSV（給 Excel 用）</li>
+    <li>每種浴櫃顯示對應照片</li>
+    <li>多人共享同一份庫存 → 用 Notion 資料庫或雲端後端（進階）</li>
+  </ul>
+</div>
+
+<p class="small" style="text-align:center;margin-top:30px">— 課程筆記完 —</p>
+</body>
+</html>
